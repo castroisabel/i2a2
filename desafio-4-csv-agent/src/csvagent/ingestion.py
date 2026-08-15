@@ -113,17 +113,32 @@ def _looks_like_dictionary(name: str, df: pd.DataFrame) -> bool:
     return False
 
 
+def sanitize_oversized_integers(df: pd.DataFrame) -> pd.DataFrame:
+    """Colunas puramente numéricas que estouram o int64 (ex: chave de acesso de
+    NF-e, com 44 dígitos) ficam como Python int arbitrário numa coluna 'object'.
+    O Streamlit não consegue exibi-las (pyarrow lança OverflowError ao converter
+    para Arrow), e são identificadores, não quantidades -- convertemos para texto."""
+    for col in df.columns:
+        if df[col].dtype != object:
+            continue
+        non_null = df[col].dropna()
+        if len(non_null) and non_null.map(lambda v: isinstance(v, int)).all():
+            df[col] = df[col].astype("string")
+    return df
+
+
 def _read_dataframe(raw: RawFile) -> pd.DataFrame:
     encoding = _detect_encoding(raw.raw_bytes)
     text_sample = raw.raw_bytes[:20_000].decode(encoding, errors="replace")
     sep = _detect_separator(text_sample)
-    return pd.read_csv(
+    df = pd.read_csv(
         io.BytesIO(raw.raw_bytes),
         sep=sep,
         encoding=encoding,
         engine="python",
         on_bad_lines="warn",
     )
+    return sanitize_oversized_integers(df)
 
 
 def _parse_dictionary(df: pd.DataFrame) -> dict[str, str]:

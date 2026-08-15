@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, HumanMessage
 
 from csvagent.agent import build_agent_executor
-from csvagent.ingestion import load_uploads_into_catalog
+from csvagent.ingestion import load_uploads_into_catalog, sanitize_oversized_integers
 
 load_dotenv()
 
@@ -141,7 +141,7 @@ def _render_message(message: dict) -> None:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
         for table in message.get("tables", []):
-            st.dataframe(table, width="stretch")
+            st.dataframe(sanitize_oversized_integers(table), width="stretch")
         for chart in message.get("charts", []):
             st.plotly_chart(chart, width="stretch")
         trace = message.get("trace")
@@ -199,7 +199,7 @@ def _render_tab_chat() -> None:
 
         st.markdown(answer)
         for table in agent_session.generated_tables:
-            st.dataframe(table, width="stretch")
+            st.dataframe(sanitize_oversized_integers(table), width="stretch")
         for chart in agent_session.generated_charts:
             st.plotly_chart(chart, width="stretch")
         if agent_session.trace:
