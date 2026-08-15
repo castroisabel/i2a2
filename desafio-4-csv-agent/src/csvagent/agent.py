@@ -1,4 +1,4 @@
-"""Monta o agente LangChain: prompt + LLM (Gemini) + tools + executor.
+"""Monta o agente LangChain: prompt + LLM (Groq) + tools + executor.
 
 Framework exigido pelo desafio: LangChain (`langchain.agents.create_agent`,
 a API atual da 1.x, que orquestra o loop de tool-calling via LangGraph por
@@ -6,12 +6,17 @@ baixo dos panos). O modelo recebe, no system prompt, um resumo do catálogo de
 dados (schema + amostra + dicionário de dados, quando houver) e decide sozinho
 quais tools chamar e em que ordem para responder a pergunta em linguagem
 natural do usuário.
+
+LLM: Groq (`langchain-groq`) -- tier gratuito com cota diária bem mais folgada
+que a do Gemini (útil para um protótipo de curso testado por várias pessoas).
+Se o modelo abaixo for descontinuado, troque pelo atual em
+https://console.groq.com/docs/models.
 """
 
 from __future__ import annotations
 
 from langchain.agents import create_agent
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 
 from csvagent.catalog import DataCatalog
 from csvagent.tools import AgentSession, build_tools
@@ -40,16 +45,16 @@ Diretrizes:
 """
 
 
-def build_agent_executor(catalog: DataCatalog, google_api_key: str):
+def build_agent_executor(catalog: DataCatalog, api_key: str):
     """Retorna (grafo do agente, AgentSession). O grafo é invocado com
     `{"messages": [...]}` e devolve `{"messages": [...]}` -- a última mensagem
     (sem tool_calls) é a resposta final."""
     session = AgentSession(catalog=catalog)
     tools = build_tools(session)
 
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        google_api_key=google_api_key,
+    llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        api_key=api_key,
         temperature=0,
     )
 

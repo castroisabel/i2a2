@@ -14,7 +14,8 @@ Aplicação Streamlit com duas interfaces:
 ## Framework exigido
 
 **LangChain** (`langchain.agents.create_agent`, API 1.x baseada em LangGraph) +
-**Google Gemini** (`gemini-2.5-flash` via `langchain-google-genai`).
+**Groq** (`llama-3.3-70b-versatile` via `langchain-groq` -- tier gratuito com cota
+diária bem mais folgada que a de LLMs proprietárias como o Gemini).
 
 ## Rodando localmente
 
@@ -23,10 +24,10 @@ uv sync
 ```
 
 Crie um arquivo `.env` na raiz do projeto (nunca é commitado) com sua chave gratuita
-do Google AI Studio (https://aistudio.google.com/apikey):
+do Groq (https://console.groq.com/keys):
 
 ```
-GOOGLE_API_KEY=sua_chave_aqui
+GROQ_API_KEY=sua_chave_aqui
 ```
 
 Depois:

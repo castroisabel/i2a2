@@ -53,23 +53,23 @@ def _get_api_key() -> str:
     senha". O campo de texto abaixo começa sempre vazio; se o usuário não digitar nada,
     caímos silenciosamente para a chave do servidor (usada só internamente, nunca reexibida).
     """
-    server_key = os.environ.get("GOOGLE_API_KEY", "")
+    server_key = os.environ.get("GROQ_API_KEY", "")
     with st.sidebar:
         st.header("Configuração")
         if server_key:
             st.success("Chave da API já configurada para este app.")
-            label = "Usar outra Google API Key (Gemini) nesta sessão -- opcional"
+            label = "Usar outra Groq API Key nesta sessão -- opcional"
         else:
-            label = "Google API Key (Gemini)"
+            label = "Groq API Key"
         user_key = st.text_input(
             label,
             type="password",
-            help="Gere gratuitamente em https://aistudio.google.com/apikey",
+            help="Gere gratuitamente em https://console.groq.com/keys",
             key="api_key_input",
         )
         st.caption(
             "Se você digitar uma chave aqui, ela fica só nesta sessão do navegador -- não é "
-            "salva em disco nem enviada a lugar nenhum além da API do Google."
+            "salva em disco nem enviada a lugar nenhum além da API da Groq."
         )
         if st.session_state.catalog is not None:
             st.divider()
@@ -127,7 +127,7 @@ def _render_tab_upload() -> None:
 
 def _ensure_agent(api_key: str) -> bool:
     if not api_key:
-        st.warning("Informe a Google API Key na barra lateral para liberar o chat.")
+        st.warning("Informe a Groq API Key na barra lateral para liberar o chat.")
         return False
     if st.session_state.executor is None:
         with st.spinner("Preparando o agente..."):
@@ -188,8 +188,8 @@ def _render_tab_chat() -> None:
                 messages = [*st.session_state.lc_history, HumanMessage(content=user_question)]
                 result = st.session_state.executor.invoke({"messages": messages})
                 last_message = result["messages"][-1]
-                # Alguns modelos (ex: Gemini com "thought signatures") retornam `.content`
-                # como uma lista de blocos em vez de string -- `.text` normaliza para str.
+                # Alguns modelos retornam `.content` como uma lista de blocos em vez de
+                # string (ex: Gemini com "thought signatures") -- `.text` normaliza para str.
                 answer = str(last_message.text)
             except Exception as exc:  # noqa: BLE001
                 answer = (
