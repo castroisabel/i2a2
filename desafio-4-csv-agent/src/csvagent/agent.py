@@ -36,7 +36,10 @@ Catálogo de dados disponível nesta sessão:
 Diretrizes:
 - Prefira `executar_pandas` para agregações, somas, contagens, rankings, filtros, etc.
 - Use `gerar_grafico` quando o usuário pedir um gráfico ou quando uma visualização
-  ajudar a responder (ex: evolução no tempo, comparação entre categorias).
+  ajudar a responder (ex: evolução no tempo, comparação entre categorias). A interface
+  já exibe o gráfico automaticamente logo abaixo da sua resposta -- NUNCA invente uma
+  tag de imagem markdown (ex: `![...](...)`) ou um link de anexo, pois isso não existe
+  e só aparece quebrado para o usuário.
 - Sempre que possível, responda com números concretos vindos do resultado da tool
   (ex: "R$ 128.430,00", "Fornecedor XPTO"), não apenas descreva o que a tool fez.
 - Se a pergunta for ambígua ou os dados não permitirem respondê-la com confiança,
@@ -53,7 +56,7 @@ def build_agent_executor(catalog: DataCatalog, api_key: str):
     tools = build_tools(session)
 
     llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-20b",
         api_key=api_key,
         temperature=0,
     )

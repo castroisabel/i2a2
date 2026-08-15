@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, HumanMessage
 
 from csvagent.agent import build_agent_executor
+from csvagent.autocharts import suggest_default_charts
 from csvagent.ingestion import load_uploads_into_catalog, sanitize_oversized_integers
 
 load_dotenv()
@@ -124,6 +125,12 @@ def _render_tab_upload() -> None:
                 st.write("Dicionário de dados:")
                 st.json(catalog.dictionary[name])
 
+            charts = suggest_default_charts(df)
+            if charts:
+                st.write("**Gráficos automáticos** (sugeridos por heurística, sem usar a LLM):")
+                for title, fig in charts:
+                    st.plotly_chart(fig, width="stretch", key=f"autochart_{name}_{title}")
+
 
 def _ensure_agent(api_key: str) -> bool:
     if not api_key:
@@ -222,17 +229,77 @@ def _render_tab_chat() -> None:
     st.session_state.lc_history.append(AIMessage(content=answer))
 
 
+_ARCHITECTURE_DOT = r"""
+digraph Architecture {
+    rankdir=LR;
+    bgcolor="transparent";
+    node [shape=box, style="rounded,filled", fillcolor="#eef2ff", color="#4b5563", fontname="Helvetica", fontsize=11];
+    edge [fontname="Helvetica", fontsize=9, color="#6b7280", fontcolor="#374151"];
+
+    subgraph cluster_a {
+        label="Interface A -- Carga dos Dados";
+        style=dashed; color="#9ca3af"; fontname="Helvetica"; fontsize=12;
+        Upload [label="Upload\nZIP / CSV"];
+        Ingestion [label="ingestion.py\nencoding, separador,\ndicionario de dados"];
+        Catalog [label="catalog.py\nDataCatalog\n(DataFrames + schema)"];
+        AutoCharts [label="Graficos automaticos\n(heuristica, sem LLM)", fillcolor="#dcfce7"];
+    }
+
+    subgraph cluster_b {
+        label="Interface B -- Consulta em Linguagem Natural";
+        style=dashed; color="#9ca3af"; fontname="Helvetica"; fontsize=12;
+        Question [label="Pergunta do\nusuario"];
+        Agent [label="agent.py\nLangChain create_agent\n+ LLM (Groq)", fillcolor="#fef3c7"];
+        Tools [label="tools.py\n5 tools"];
+        Sandbox [label="sandbox.py\nexecucao restrita\n(whitelist AST)"];
+        Answer [label="Resposta\ntexto / tabela / grafico", fillcolor="#dcfce7"];
+    }
+
+    Upload -> Ingestion -> Catalog;
+    Catalog -> AutoCharts;
+    Catalog -> Agent [label="schema no\nsystem prompt"];
+    Question -> Agent;
+    Agent -> Tools [label="decide qual\ntool chamar"];
+    Tools -> Sandbox [label="codigo\npandas/plotly"];
+    Sandbox -> Catalog [label="le os dados", style=dashed];
+    Sandbox -> Tools [label="resultado real"];
+    Tools -> Agent [label="tool result"];
+    Agent -> Answer;
+}
+"""
+
+
+def _render_tab_architecture() -> None:
+    st.subheader("Arquitetura da solução")
+    st.write(
+        "Fluxo completo: da carga do arquivo até a resposta do agente. Os módulos "
+        "em verde não dependem da LLM (heurística pura); o módulo em amarelo é onde "
+        "o LangChain + Groq efetivamente decidem o que fazer."
+    )
+    st.graphviz_chart(_ARCHITECTURE_DOT, width="stretch")
+    st.caption(
+        "`agent.py` monta o agente (prompt + LLM + tools). `tools.py` expõe 5 ferramentas "
+        "(listar tabelas, descrever tabela, valores frequentes, executar pandas, gerar gráfico). "
+        "`sandbox.py` valida por AST o código pandas/plotly antes de executá-lo -- bloqueia "
+        "`import`, `eval`/`exec`, atributos `__dunder__` e loops `while`."
+    )
+
+
 def main() -> None:
     _init_session_state()
     st.title("Agente Inteligente para Consulta de Arquivos CSV")
     st.caption("Desafio 4 -- I2A2 -- Agentes Inteligentes e LLMs")
     st.session_state.effective_api_key = _get_api_key()
 
-    tab_upload, tab_chat = st.tabs(["1. Carga dos Dados", "2. Consulta"])
+    tab_upload, tab_chat, tab_architecture = st.tabs(
+        ["1. Carga dos Dados", "2. Consulta", "3. Arquitetura"]
+    )
     with tab_upload:
         _render_tab_upload()
     with tab_chat:
         _render_tab_chat()
+    with tab_architecture:
+        _render_tab_architecture()
 
 
 if __name__ == "__main__":

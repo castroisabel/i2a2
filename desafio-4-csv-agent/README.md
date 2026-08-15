@@ -2,20 +2,24 @@
 
 Desafio 4 -- I2A2 (Instituto de Inteligência Artificial Aplicada).
 
-Aplicação Streamlit com duas interfaces:
+Aplicação Streamlit com três abas:
 
 - **A. Carga dos dados** -- upload de um ou mais arquivos `.csv` soltos, ou de um `.zip`
   contendo um ou mais CSVs e, opcionalmente, um arquivo de dicionário de dados (detectado
-  automaticamente).
+  automaticamente). Depois de carregar, mostra também até 2 **gráficos automáticos por
+  tabela** (total por categoria, evolução no tempo), sugeridos por heurística sobre o
+  schema -- sem chamar o LLM.
 - **B. Consulta** -- chat em linguagem natural sobre os dados carregados, respondido
   por um agente LangChain que escreve e executa pandas/plotly de verdade sobre os
   dados (nunca "chuta" um número).
+- **C. Arquitetura** -- diagrama do fluxo completo da solução (Graphviz).
 
 ## Framework exigido
 
 **LangChain** (`langchain.agents.create_agent`, API 1.x baseada em LangGraph) +
-**Groq** (`llama-3.3-70b-versatile` via `langchain-groq` -- tier gratuito com cota
-diária bem mais folgada que a de LLMs proprietárias como o Gemini).
+**Groq** (`openai/gpt-oss-20b` via `langchain-groq` -- tier gratuito com cota bem mais
+folgada que a de LLMs proprietárias como o Gemini). Se o modelo for descontinuado,
+troque em `src/csvagent/agent.py` -- lista atual em https://console.groq.com/docs/models.
 
 ## Rodando localmente
 
@@ -42,11 +46,12 @@ do app (fica só na sessão do navegador).
 ## Arquitetura
 
 ```
-app.py                     Interface Streamlit (abas A e B)
+app.py                     Interface Streamlit (abas A, B e C)
 src/csvagent/
   ingestion.py              Extrai o ZIP, detecta encoding/separador, identifica
                              o dicionário de dados
   catalog.py                Catálogo em memória: DataFrames + schema + dicionário
+  autocharts.py              Gráficos genéricos por heurística (sem LLM) na Aba A
   sandbox.py                Execução restrita (whitelist de AST) do código
                              pandas/plotly gerado pelo LLM
   tools.py                  5 tools do agente (listar, descrever, valores
