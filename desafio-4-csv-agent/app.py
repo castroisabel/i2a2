@@ -40,32 +40,44 @@ def _init_session_state() -> None:
         "agent_session": None,
         "chat_messages": [],  # para exibir na tela: [{"role", "content", "tables", "charts", "trace"}]
         "lc_history": [],  # para a memória do agente: [HumanMessage/AIMessage]
-        "api_key": os.environ.get("GOOGLE_API_KEY", ""),
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
 
 
 def _get_api_key() -> str:
+    """Chave efetiva usada pelo agente nesta sessão.
+
+    IMPORTANTE: a chave do servidor (variável de ambiente / Secret do Streamlit Cloud)
+    nunca deve ser usada como `value=` de um widget -- isso a coloca no DOM da página e
+    qualquer visitante do app publicado consegue revelá-la clicando no ícone de "mostrar
+    senha". O campo de texto abaixo começa sempre vazio; se o usuário não digitar nada,
+    caímos silenciosamente para a chave do servidor (usada só internamente, nunca reexibida).
+    """
+    server_key = os.environ.get("GOOGLE_API_KEY", "")
     with st.sidebar:
         st.header("Configuração")
-        api_key = st.text_input(
-            "Google API Key (Gemini)",
-            value=st.session_state.api_key,
+        if server_key:
+            st.success("Chave da API já configurada para este app.")
+            label = "Usar outra Google API Key (Gemini) nesta sessão -- opcional"
+        else:
+            label = "Google API Key (Gemini)"
+        user_key = st.text_input(
+            label,
             type="password",
             help="Gere gratuitamente em https://aistudio.google.com/apikey",
+            key="api_key_input",
         )
-        st.session_state.api_key = api_key
         st.caption(
-            "A chave fica só nesta sessão do navegador -- não é salva em disco nem enviada "
-            "a lugar nenhum além da API do Google."
+            "Se você digitar uma chave aqui, ela fica só nesta sessão do navegador -- não é "
+            "salva em disco nem enviada a lugar nenhum além da API do Google."
         )
         if st.session_state.catalog is not None:
             st.divider()
             st.subheader("Dados carregados")
             for name, df in st.session_state.catalog.tables.items():
                 st.caption(f"`{name}` -- {len(df)} linhas x {len(df.columns)} colunas")
-    return api_key
+    return user_key or server_key
 
 
 def _render_tab_upload() -> None:
@@ -148,8 +160,7 @@ def _render_tab_chat() -> None:
         st.info("Carregue um arquivo ZIP na aba 'Carga dos Dados' primeiro.")
         return
 
-    api_key = st.session_state.api_key
-    if not _ensure_agent(api_key):
+    if not _ensure_agent(st.session_state.effective_api_key):
         return
 
     with st.expander("💡 Perguntas de exemplo"):
@@ -214,7 +225,7 @@ def main() -> None:
     _init_session_state()
     st.title("📊 Agente Inteligente para Consulta de Arquivos CSV")
     st.caption("Desafio 4 -- I2A2 -- Agentes Inteligentes e LLMs")
-    _get_api_key()
+    st.session_state.effective_api_key = _get_api_key()
 
     tab_upload, tab_chat = st.tabs(["1. Carga dos Dados", "2. Consulta"])
     with tab_upload:
