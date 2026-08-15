@@ -9,7 +9,6 @@ Rodar localmente:  uv run streamlit run app.py
 
 from __future__ import annotations
 
-import io
 import os
 
 import streamlit as st
@@ -17,7 +16,7 @@ from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, HumanMessage
 
 from csvagent.agent import build_agent_executor
-from csvagent.ingestion import load_zip_into_catalog
+from csvagent.ingestion import load_uploads_into_catalog
 
 load_dotenv()
 
@@ -83,19 +82,21 @@ def _get_api_key() -> str:
 def _render_tab_upload() -> None:
     st.subheader("Interface A -- Carga dos dados")
     st.write(
-        "Envie um arquivo **.zip** contendo um ou mais arquivos **.csv** e, opcionalmente, "
-        "um **dicionário de dados** (arquivo descrevendo as colunas -- o app tenta detectá-lo "
-        "automaticamente pelo nome ou pelo formato)."
+        "Envie um ou mais arquivos **.csv**, ou um **.zip** contendo um ou mais CSVs e, "
+        "opcionalmente, um **dicionário de dados** (arquivo descrevendo as colunas -- o app "
+        "tenta detectá-lo automaticamente pelo nome ou pelo formato)."
     )
-    uploaded_zip = st.file_uploader("Arquivo ZIP", type=["zip"])
+    uploaded_files = st.file_uploader(
+        "Arquivo(s) CSV ou ZIP", type=["zip", "csv"], accept_multiple_files=True
+    )
 
-    if uploaded_zip is not None:
-        if st.button("Processar arquivo", type="primary"):
-            with st.spinner("Descompactando e lendo os arquivos..."):
+    if uploaded_files:
+        if st.button("Processar arquivo(s)", type="primary"):
+            with st.spinner("Lendo os arquivos..."):
                 try:
-                    catalog, warnings = load_zip_into_catalog(io.BytesIO(uploaded_zip.getvalue()))
+                    catalog, warnings = load_uploads_into_catalog(uploaded_files)
                 except Exception as exc:  # noqa: BLE001
-                    st.error(f"Não foi possível processar o ZIP: {exc}")
+                    st.error(f"Não foi possível processar o(s) arquivo(s): {exc}")
                     return
 
             st.session_state.catalog = catalog
@@ -107,7 +108,7 @@ def _render_tab_upload() -> None:
 
     catalog = st.session_state.catalog
     if catalog is None:
-        st.info("Nenhum dado carregado ainda. Envie um ZIP acima para liberar a aba de Consulta.")
+        st.info("Nenhum dado carregado ainda. Envie CSV(s) ou um ZIP acima para liberar a aba de Consulta.")
         return
 
     for warning in st.session_state.catalog_warnings:

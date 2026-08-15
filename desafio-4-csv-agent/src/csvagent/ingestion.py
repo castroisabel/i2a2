@@ -153,14 +153,42 @@ def _parse_dictionary(df: pd.DataFrame) -> dict[str, str]:
 
 def load_zip_into_catalog(zip_path: str | Path) -> tuple[DataCatalog, list[str]]:
     """Extrai o zip e monta o DataCatalog. Retorna (catálogo, avisos)."""
-    warnings: list[str] = []
     raw_files = _iter_zip_members(zip_path)
     if not raw_files:
         raise ValueError(
             "Nenhum arquivo .csv ou .txt encontrado dentro do ZIP. "
             "Confira se o arquivo enviado realmente contém os dados compactados."
         )
+    return _build_catalog_from_raw_files(raw_files)
 
+
+def load_uploads_into_catalog(uploaded_files: list) -> tuple[DataCatalog, list[str]]:
+    """Monta o catálogo a partir de um ou mais arquivos enviados pelo usuário.
+
+    Cada item pode ser um .zip (descompactado automaticamente) ou um .csv/.txt solto,
+    usado diretamente -- assim o usuário não é obrigado a compactar um único CSV.
+    Espera objetos com `.name` e `.getvalue()` (ex: `st.file_uploader`).
+    """
+    raw_files: list[RawFile] = []
+    for uploaded in uploaded_files:
+        name = uploaded.name
+        data = uploaded.getvalue()
+        suffix = Path(name).suffix.lower()
+        if suffix == ".zip":
+            raw_files.extend(_iter_zip_members(io.BytesIO(data)))
+        elif suffix in (".csv", ".txt"):
+            raw_files.append(RawFile(name=name, raw_bytes=data))
+
+    if not raw_files:
+        raise ValueError(
+            "Nenhum arquivo .csv ou .txt encontrado. Envie um .zip contendo os dados "
+            "ou arquivos .csv diretamente."
+        )
+    return _build_catalog_from_raw_files(raw_files)
+
+
+def _build_catalog_from_raw_files(raw_files: list[RawFile]) -> tuple[DataCatalog, list[str]]:
+    warnings: list[str] = []
     catalog = DataCatalog()
     dictionary_candidates: list[tuple[str, pd.DataFrame]] = []
     data_candidates: list[tuple[str, pd.DataFrame]] = []

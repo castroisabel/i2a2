@@ -4,8 +4,9 @@ Desafio 4 -- I2A2 (Instituto de Inteligência Artificial Aplicada).
 
 Aplicação Streamlit com duas interfaces:
 
-- **A. Carga dos dados** -- upload de um `.zip` com um ou mais CSVs e, opcionalmente,
-  um arquivo de dicionário de dados (detectado automaticamente).
+- **A. Carga dos dados** -- upload de um ou mais arquivos `.csv` soltos, ou de um `.zip`
+  contendo um ou mais CSVs e, opcionalmente, um arquivo de dicionário de dados (detectado
+  automaticamente).
 - **B. Consulta** -- chat em linguagem natural sobre os dados carregados, respondido
   por um agente LangChain que escreve e executa pandas/plotly de verdade sobre os
   dados (nunca "chuta" um número).
