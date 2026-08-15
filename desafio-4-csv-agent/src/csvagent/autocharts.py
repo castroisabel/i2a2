@@ -83,3 +83,29 @@ def suggest_default_charts(df: pd.DataFrame) -> list[tuple[str, go.Figure]]:
         charts.append((title, fig))
 
     return charts[:2]
+
+
+def suggest_example_questions(df: pd.DataFrame, table_name: str | None = None) -> list[str]:
+    """Perguntas de exemplo derivadas do schema real (mesma heurística dos gráficos
+    automáticos) -- substituem uma lista fixa que não tinha relação com o dado carregado.
+    `table_name` só é usado (como prefixo) quando o catálogo tem mais de uma tabela."""
+    value_col = _pick_value_column(df)
+    category_col = _pick_category_column(df)
+    date_series = _pick_date_column(df)
+
+    templates: list[str] = []
+    if value_col and category_col:
+        templates.append(f"Qual {category_col} teve o maior total de {value_col}?")
+        templates.append(f"Quais os 5 maiores {category_col} em {value_col}?")
+    if value_col and date_series is not None:
+        templates.append(f"Qual foi o total de {value_col} em cada mês?")
+    if category_col:
+        templates.append(f"Quais os valores mais frequentes em {category_col}?")
+    if value_col and not templates:
+        templates.append(f"Qual o total de {value_col}?")
+    if not templates:
+        templates.append("Quantas linhas tem esta tabela?")
+
+    if table_name is None:
+        return templates
+    return [f"Na tabela `{table_name}`, " + t[0].lower() + t[1:] for t in templates]

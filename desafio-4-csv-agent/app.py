@@ -16,20 +16,23 @@ from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, HumanMessage
 
 from csvagent.agent import build_agent_executor
-from csvagent.autocharts import suggest_default_charts
+from csvagent.autocharts import suggest_default_charts, suggest_example_questions
+from csvagent.catalog import DataCatalog
 from csvagent.ingestion import load_uploads_into_catalog, sanitize_oversized_integers
 
 load_dotenv()
 
 st.set_page_config(page_title="Agente CSV -- Desafio 4 I2A2", page_icon="📊", layout="wide")
 
-EXAMPLE_QUESTIONS = [
-    "Qual fornecedor recebeu o maior valor no período?",
-    "Qual produto apresentou o maior volume comprado?",
-    "Qual foi o total gasto em cada mês?",
-    "Quais foram os cinco maiores fornecedores?",
-    "Gere um gráfico da evolução mensal do valor total.",
-]
+
+def _example_questions_for_catalog(catalog: DataCatalog) -> list[str]:
+    """Perguntas de exemplo derivadas do schema real carregado (heurística, sem LLM) --
+    prefixa com o nome da tabela só quando há mais de uma no catálogo."""
+    multi = len(catalog.tables) > 1
+    questions: list[str] = []
+    for name, df in catalog.tables.items():
+        questions.extend(suggest_example_questions(df, table_name=name if multi else None))
+    return questions[:6]
 
 
 def _init_session_state() -> None:
@@ -171,8 +174,8 @@ def _render_tab_chat() -> None:
     if not _ensure_agent(st.session_state.effective_api_key):
         return
 
-    with st.expander("💡 Perguntas de exemplo"):
-        for question in EXAMPLE_QUESTIONS:
+    with st.expander("💡 Perguntas de exemplo (baseadas nos dados carregados)"):
+        for question in _example_questions_for_catalog(catalog):
             st.markdown(f"- {question}")
 
     for message in st.session_state.chat_messages:
