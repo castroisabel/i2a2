@@ -224,7 +224,7 @@ def _render_tab_chat() -> None:
 
 def main() -> None:
     _init_session_state()
-    st.title("📊 Agente Inteligente para Consulta de Arquivos CSV")
+    st.title("Agente Inteligente para Consulta de Arquivos CSV")
     st.caption("Desafio 4 -- I2A2 -- Agentes Inteligentes e LLMs")
     st.session_state.effective_api_key = _get_api_key()
 
