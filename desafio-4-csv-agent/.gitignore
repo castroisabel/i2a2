@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/uploads/
+data/extracted/
+.streamlit/secrets.toml
+*.zip
+uv.lock.bak
+.DS_Store
