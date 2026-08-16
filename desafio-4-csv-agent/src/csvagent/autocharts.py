@@ -109,3 +109,109 @@ def suggest_example_questions(df: pd.DataFrame, table_name: str | None = None) -
     if table_name is None:
         return templates
     return [f"Na tabela `{table_name}`, " + t[0].lower() + t[1:] for t in templates]
+
+
+def build_chart_from_dataframe(df: pd.DataFrame, title: str = "") -> go.Figure | None:
+    """Gera automaticamente uma figura Plotly a partir de um DataFrame retornado por uma consulta.
+    Usa linhas com marcadores roxos para dados temporais e barras azuis para dados categóricos,
+    seguindo o design system do projeto.
+    """
+    if not isinstance(df, pd.DataFrame) or df.empty or len(df) < 2:
+        return None
+
+    try:
+        # Se tiver apenas 1 coluna numérica e o índice tiver nomes úteis
+        work_df = df.copy()
+        if len(work_df.columns) == 1 and not isinstance(work_df.index, pd.RangeIndex):
+            work_df = work_df.reset_index()
+
+        cols = list(work_df.columns)
+        if len(cols) < 2:
+            return None
+
+        # Converte qualquer coluna Period ou Timestamp em string para serialização segura em JSON
+        for c in cols:
+            if str(work_df[c].dtype).startswith("period") or isinstance(work_df[c].dtype, pd.PeriodDtype):
+                work_df[c] = work_df[c].astype(str)
+            elif work_df[c].dtype == object:
+                work_df[c] = work_df[c].apply(lambda x: str(x) if isinstance(x, (pd.Period, pd.Timestamp)) else x)
+
+        # Identifica colunas numéricas e não-numéricas
+        num_cols = work_df.select_dtypes(include="number").columns.tolist()
+        non_num_cols = [c for c in cols if c not in num_cols]
+
+        if num_cols and non_num_cols:
+            x_col = non_num_cols[0]
+            y_col = num_cols[0]
+
+            # Verifica se x_col parece ser temporal (data, ano, mês, etc)
+            is_temporal = any(
+                k in str(x_col).lower()
+                for k in ["mes", "mês", "ano", "data", "date", "periodo", "período", "dia", "month", "year"]
+            ) or any(
+                re.match(r"^\d{4}[-/]\d{2}", str(v)) for v in work_df[x_col].dropna().head(3)
+            )
+
+            chart_title = title or f"{y_col} por {x_col}"
+
+            if is_temporal:
+                fig = px.line(
+                    work_df,
+                    x=x_col,
+                    y=y_col,
+                    title=f"📈 {chart_title}",
+                    markers=True,
+                )
+                fig.update_traces(
+                    line=dict(color="#7C3AED", width=3),
+                    marker=dict(size=8, color="#7C3AED", symbol="circle")
+                )
+            else:
+                # Ordena por valor se for categórico
+                plot_df = work_df.sort_values(by=y_col, ascending=False).head(15)
+                fig = px.bar(
+                    plot_df,
+                    x=x_col,
+                    y=y_col,
+                    title=f"📊 {chart_title}",
+                    color_discrete_sequence=["#3B82F6"]
+                )
+                fig.update_traces(marker_line_width=0, opacity=0.9)
+
+            fig.update_layout(
+                template="plotly_white",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=20, r=20, t=50, b=20),
+                hovermode="x unified",
+                font=dict(family="Inter, sans-serif")
+            )
+            fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor="rgba(226, 232, 240, 0.6)")
+            fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="rgba(226, 232, 240, 0.6)")
+            return fig
+
+        elif len(num_cols) >= 2:
+            x_col, y_col = num_cols[0], num_cols[1]
+            fig = px.line(
+                work_df,
+                x=x_col,
+                y=y_col,
+                title=f"📈 {title or f'{y_col} vs {x_col}'}",
+                markers=True
+            )
+            fig.update_traces(line=dict(color="#7C3AED", width=3), marker=dict(size=8, color="#7C3AED"))
+            fig.update_layout(
+                template="plotly_white",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=20, r=20, t=50, b=20),
+                hovermode="x unified",
+                font=dict(family="Inter, sans-serif")
+            )
+            return fig
+
+    except Exception:  # noqa: BLE001
+        return None
+
+    return None
+

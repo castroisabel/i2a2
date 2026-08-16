@@ -115,16 +115,17 @@ def _looks_like_dictionary(name: str, df: pd.DataFrame) -> bool:
 
 def sanitize_oversized_integers(df: pd.DataFrame) -> pd.DataFrame:
     """Colunas puramente numéricas que estouram o int64 (ex: chave de acesso de
-    NF-e, com 44 dígitos) ficam como Python int arbitrário numa coluna 'object'.
-    O Streamlit não consegue exibi-las (pyarrow lança OverflowError ao converter
-    para Arrow), e são identificadores, não quantidades -- convertemos para texto."""
-    for col in df.columns:
-        if df[col].dtype != object:
-            continue
-        non_null = df[col].dropna()
-        if len(non_null) and non_null.map(lambda v: isinstance(v, int)).all():
-            df[col] = df[col].astype("string")
-    return df
+    NF-e, com 44 dígitos) e tipos Period que não são serializáveis para JSON/Arrow
+    são convertidos para texto/string para exibição segura no Streamlit."""
+    df_copy = df.copy()
+    for col in df_copy.columns:
+        if str(df_copy[col].dtype).startswith("period") or isinstance(df_copy[col].dtype, pd.PeriodDtype):
+            df_copy[col] = df_copy[col].astype(str)
+        elif df_copy[col].dtype == object:
+            non_null = df_copy[col].dropna()
+            if len(non_null) and non_null.map(lambda v: isinstance(v, (int, pd.Period))).all():
+                df_copy[col] = df_copy[col].astype(str)
+    return df_copy
 
 
 def _read_dataframe(raw: RawFile) -> pd.DataFrame:
