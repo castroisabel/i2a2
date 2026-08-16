@@ -6,5 +6,6 @@ data/uploads/
 data/extracted/
 .streamlit/secrets.toml
 *.zip
+!sample_data/*.zip
 uv.lock.bak
 .DS_Store
