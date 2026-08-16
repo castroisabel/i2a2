@@ -452,56 +452,84 @@ _ARCHITECTURE_DOT = r"""
 digraph Architecture {
     rankdir=LR;
     bgcolor="transparent";
-    node [shape=box, style="rounded,filled", fillcolor="#eef2ff", color="#4b5563", fontname="Helvetica", fontsize=11];
-    edge [fontname="Helvetica", fontsize=9, color="#6b7280", fontcolor="#374151"];
+    node [shape=box, style="rounded,filled", fillcolor="#f8fafc", color="#3b82f6", fontname="Helvetica", fontsize=10, penwidth=1.5];
+    edge [fontname="Helvetica", fontsize=9, color="#64748b", fontcolor="#0f172a", penwidth=1.2];
 
     subgraph cluster_a {
-        label="Interface A -- Carga dos Dados";
-        style=dashed; color="#9ca3af"; fontname="Helvetica"; fontsize=12;
-        Upload [label="Upload\nZIP / CSV"];
-        Ingestion [label="ingestion.py\nencoding, separador,\ndicionario de dados"];
-        Catalog [label="catalog.py\nDataCatalog\n(DataFrames + schema)"];
-        AutoCharts [label="Graficos automaticos\n(heuristica, sem LLM)", fillcolor="#dcfce7"];
+        label="Interface A • Carga dos Dados";
+        style="rounded,dashed"; color="#94a3b8"; fontname="Helvetica"; fontsize=11; bgcolor="rgba(241,245,249,0.3)";
+        
+        InputData [label="Upload ZIP / CSV ou\nDatasets de Exemplo", fillcolor="#f1f5f9"];
+        Ingestion [label="ingestion.py\nEncoding, separador,\ndicionário & sanitização"];
+        Catalog [label="catalog.py\nDataCatalog\n(DataFrames + Schema)"];
+        AutoChartsA [label="autocharts.py\nGráficos Iniciais &\nPerguntas Sugeridas", fillcolor="#dcfce7", color="#10b981"];
     }
 
     subgraph cluster_b {
-        label="Interface B -- Consulta em Linguagem Natural";
-        style=dashed; color="#9ca3af"; fontname="Helvetica"; fontsize=12;
-        Question [label="Pergunta do\nusuario"];
-        Agent [label="agent.py\nLangChain create_agent\n+ LLM (Groq)", fillcolor="#fef3c7"];
-        Tools [label="tools.py\n5 tools"];
-        Sandbox [label="sandbox.py\nexecucao restrita\n(whitelist AST)"];
-        Answer [label="Resposta\ntexto / tabela / grafico", fillcolor="#dcfce7"];
+        label="Interface B • Consulta em Linguagem Natural";
+        style="rounded,dashed"; color="#94a3b8"; fontname="Helvetica"; fontsize=11; bgcolor="rgba(241,245,249,0.3)";
+        
+        Question [label="Pergunta do Usuário\n(Texto ou Sugestões)", fillcolor="#f1f5f9"];
+        Agent [label="agent.py\nLangChain create_agent\n+ LLM (Groq)", fillcolor="#fef3c7", color="#f59e0b"];
+        Tools [label="tools.py\n5 Ferramentas\n(Pandas, Plotly, Schema)"];
+        Sandbox [label="sandbox.py\nExecução Restrita\n(Whitelist AST)"];
+        AutoChartB [label="autocharts.py\nAuto-Charting Plotly\n(Linhas & Barras)", fillcolor="#dcfce7", color="#10b981"];
+        DidacticEngine [label="Bastidores do Agente\n(Chain of Thought 5 Etapas)", fillcolor="#f3e8ff", color="#a855f7"];
+        Answer [label="Resposta Multimodal\n(Resumo, Tabela, Gráfico, Código)", fillcolor="#e0f2fe", color="#0284c7"];
     }
 
-    Upload -> Ingestion -> Catalog;
-    Catalog -> AutoCharts;
+    InputData -> Ingestion -> Catalog;
+    Catalog -> AutoChartsA;
     Catalog -> Agent [label="schema no\nsystem prompt"];
     Question -> Agent;
-    Agent -> Tools [label="decide qual\ntool chamar"];
-    Tools -> Sandbox [label="codigo\npandas/plotly"];
-    Sandbox -> Catalog [label="le os dados", style=dashed];
+    Agent -> Tools [label="tool calling"];
+    Tools -> Sandbox [label="código gerado"];
+    Sandbox -> Catalog [label="lê tabelas", style=dashed];
     Sandbox -> Tools [label="resultado real"];
-    Tools -> Agent [label="tool result"];
-    Agent -> Answer;
+    Tools -> Agent [label="observações"];
+    Agent -> DidacticEngine [label="rastreio das etapas"];
+    Agent -> AutoChartB [label="dados tabulares"];
+    AutoChartB -> Answer;
+    DidacticEngine -> Answer;
 }
 """
 
 
 def _render_tab_architecture() -> None:
-    st.subheader("Arquitetura da solução")
-    st.write(
-        "Fluxo completo: da carga do arquivo até a resposta do agente. Os módulos "
-        "em verde não dependem da LLM (heurística pura); o módulo em amarelo é onde "
-        "o LangChain + Groq efetivamente decidem o que fazer."
-    )
+    st.subheader("Arquitetura da Solução")
+    st.markdown("""
+        <div class="insight-card" style="margin-bottom: 1.2rem;">
+            <div class="insight-title">🏗️ Visão Geral da Arquitetura do Sistema</div>
+            <div class="insight-body">
+                Fluxo completo ponta a ponta: desde a ingestão dos dados até a resposta multimodal com raciocínio didático.
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+    
     st.graphviz_chart(_ARCHITECTURE_DOT, width="stretch")
-    st.caption(
-        "`agent.py` monta o agente (prompt + LLM + tools). `tools.py` expõe 5 ferramentas "
-        "(listar tabelas, descrever tabela, valores frequentes, executar pandas, gerar gráfico). "
-        "`sandbox.py` valida por AST o código pandas/plotly antes de executá-lo -- bloqueia "
-        "`import`, `eval`/`exec`, atributos `__dunder__` e loops `while`."
-    )
+    
+    st.markdown("---")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        with st.container(border=True):
+            st.markdown("##### 📥 Interface A: Ingestão e Catálogo")
+            st.markdown("""
+            - **Upload e Datasets Integrados**: Suporta envio de arquivos `.ZIP`/`.CSV` e seleção de bases pré-carregadas.
+            - **`ingestion.py`**: Detecção automática de encoding, separador delimitador e mapeamento de dicionários de dados. Sanitização de identificadores e datas.
+            - **`catalog.py`**: Estrutura em memória `DataCatalog` que armazena os DataFrames e gera sumários de contexto.
+            - **`autocharts.py`**: Heurística leve que deriva perguntas sugeridas e gráficos iniciais automáticos sem depender do LLM.
+            """)
+    
+    with col2:
+        with st.container(border=True):
+            st.markdown("##### 🧠 Interface B: Agente e Raciocínio")
+            st.markdown("""
+            - **`agent.py`**: Orquestrador LangChain (`create_agent`) conectado à LLM de alta velocidade (**Groq**) com prompt contextualizado.
+            - **`tools.py`**: Expõe 5 ferramentas analíticas (`listar_tabelas`, `descrever_tabela`, `valores_frequentes`, `executar_pandas`, `gerar_grafico`).
+            - **`sandbox.py`**: Validação rigorosa por AST para bloquear operações inseguras (`import`, `eval`/`exec`, `while`, dunder).
+            - **Visualização & Didática**: Auto-charting com Plotly e decomposição do raciocínio em **5 etapas pedagógicas** (Chain of Thought).
+            """)
 
 
 def main() -> None:
