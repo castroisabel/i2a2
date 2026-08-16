@@ -452,30 +452,38 @@ _ARCHITECTURE_DOT = r"""
 digraph Architecture {
     rankdir=LR;
     bgcolor="transparent";
-    node [shape=box, style="rounded,filled", fillcolor="#f8fafc", color="#3b82f6", fontname="Helvetica", fontsize=10, penwidth=1.5];
-    edge [fontname="Helvetica", fontsize=9, color="#64748b", fontcolor="#0f172a", penwidth=1.2];
+    node [shape=box, style="rounded,filled", fillcolor="#f8fafc", color="#3b82f6", fontname="Helvetica", fontsize=10, fontcolor="#0f172a", penwidth=1.5];
+    edge [fontname="Helvetica", fontsize=9, color="#94a3b8", fontcolor="#38bdf8", penwidth=1.2];
 
     subgraph cluster_a {
-        label="Interface A • Carga dos Dados";
-        style="rounded,dashed"; color="#94a3b8"; fontname="Helvetica"; fontsize=11; bgcolor="rgba(241,245,249,0.3)";
+        label="Interface A - Carga dos Dados";
+        fontcolor="#cbd5e1";
+        fontname="Helvetica";
+        fontsize=11;
+        style="rounded,dashed";
+        color="#64748b";
         
         InputData [label="Upload ZIP / CSV ou\nDatasets de Exemplo", fillcolor="#f1f5f9"];
-        Ingestion [label="ingestion.py\nEncoding, separador,\ndicionário & sanitização"];
+        Ingestion [label="ingestion.py\nEncoding, separador,\ndicionario e sanitizacao"];
         Catalog [label="catalog.py\nDataCatalog\n(DataFrames + Schema)"];
-        AutoChartsA [label="autocharts.py\nGráficos Iniciais &\nPerguntas Sugeridas", fillcolor="#dcfce7", color="#10b981"];
+        AutoChartsA [label="autocharts.py\nGraficos Iniciais e\nPerguntas Sugeridas", fillcolor="#dcfce7", color="#10b981"];
     }
 
     subgraph cluster_b {
-        label="Interface B • Consulta em Linguagem Natural";
-        style="rounded,dashed"; color="#94a3b8"; fontname="Helvetica"; fontsize=11; bgcolor="rgba(241,245,249,0.3)";
+        label="Interface B - Consulta em Linguagem Natural";
+        fontcolor="#cbd5e1";
+        fontname="Helvetica";
+        fontsize=11;
+        style="rounded,dashed";
+        color="#64748b";
         
-        Question [label="Pergunta do Usuário\n(Texto ou Sugestões)", fillcolor="#f1f5f9"];
+        Question [label="Pergunta do Usuario\n(Texto ou Sugestoes)", fillcolor="#f1f5f9"];
         Agent [label="agent.py\nLangChain create_agent\n+ LLM (Groq)", fillcolor="#fef3c7", color="#f59e0b"];
         Tools [label="tools.py\n5 Ferramentas\n(Pandas, Plotly, Schema)"];
-        Sandbox [label="sandbox.py\nExecução Restrita\n(Whitelist AST)"];
-        AutoChartB [label="autocharts.py\nAuto-Charting Plotly\n(Linhas & Barras)", fillcolor="#dcfce7", color="#10b981"];
+        Sandbox [label="sandbox.py\nExecucao Restrita\n(Whitelist AST)"];
+        AutoChartB [label="autocharts.py\nAuto-Charting Plotly\n(Linhas e Barras)", fillcolor="#dcfce7", color="#10b981"];
         DidacticEngine [label="Bastidores do Agente\n(Chain of Thought 5 Etapas)", fillcolor="#f3e8ff", color="#a855f7"];
-        Answer [label="Resposta Multimodal\n(Resumo, Tabela, Gráfico, Código)", fillcolor="#e0f2fe", color="#0284c7"];
+        Answer [label="Resposta Multimodal\n(Resumo, Tabela, Grafico, Codigo)", fillcolor="#e0f2fe", color="#0284c7"];
     }
 
     InputData -> Ingestion -> Catalog;
@@ -483,10 +491,10 @@ digraph Architecture {
     Catalog -> Agent [label="schema no\nsystem prompt"];
     Question -> Agent;
     Agent -> Tools [label="tool calling"];
-    Tools -> Sandbox [label="código gerado"];
-    Sandbox -> Catalog [label="lê tabelas", style=dashed];
+    Tools -> Sandbox [label="codigo gerado"];
+    Sandbox -> Catalog [label="ler tabelas", style=dashed];
     Sandbox -> Tools [label="resultado real"];
-    Tools -> Agent [label="observações"];
+    Tools -> Agent [label="observacoes"];
     Agent -> DidacticEngine [label="rastreio das etapas"];
     Agent -> AutoChartB [label="dados tabulares"];
     AutoChartB -> Answer;
